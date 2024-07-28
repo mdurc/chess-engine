@@ -38,6 +38,22 @@ ofstream output("history.txt");
 // <turn #, <Location of piece that can enPassant, the square it attacks>>
 list<pair<int, pair<Loc,Loc>>> enPassants;
 
+
+void deletePieces(list<Piece*>& pieces){
+    cout << "Size: " << pieces.size() << endl;
+    for(Piece*& p: pieces){
+        delete p;
+        p = nullptr;
+    }
+}
+
+void exitProgram(){
+    output.close();
+    deletePieces(whitePieces);
+    deletePieces(blackPieces);
+    exit(1);
+}
+
 class SlidingPiece : public Piece {
 protected:
     void addMovesInDirection(int rowDelta, int colDelta) {
@@ -332,13 +348,6 @@ void printBoard(){
     cout << "     a   b   c   d   e   f   g   h  " << endl;
 }
 
-void deletePieces(list<Piece*>& pieces){
-    cout << "Size: " << pieces.size() << endl;
-    for(Piece*& p: pieces){
-        delete p;
-        p = nullptr;
-    }
-}
 
 bool isSquareAttacked(Loc pos, bool color){
     list<Piece*>& ps = color ? whitePieces : blackPieces;
@@ -426,12 +435,10 @@ void findValidMoves(bool color, bool inCheck){
 
     if(inCheck && !foundMove){
         cout << "CHECKMATE " << (color?"BLACK":"WHITE") << " WINS!" << endl;
-        output.close();
-        exit(0);
+        exitProgram();
     }else if(!inCheck && !foundMove){
         cout << "STALEMATE " << endl;
-        output.close();
-        exit(0);
+        exitProgram();
     }
 }
 
@@ -648,6 +655,7 @@ void readMoves(const string& move) {
     }
 }
 
+
 int main(){
     // start with white
     bool turn = 1;
@@ -658,15 +666,15 @@ int main(){
     printBoard();
 
     // checkmate
-    //vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
-    //    "e6d7", "a7a5", "e8e7", "d7c8q", "g8f6","d1e2", "f6e4", "d2d3", "e4c5",
-    //    "d8e8", "e2e4", "e7f6", "h2h4", "a7a5", "c1g5", "a5a4", "a5a4"};
+    vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
+        "e6d7", "a7a5", "e8e7", "d7c8q", "g8f6","d1e2", "f6e4", "d2d3", "e4c5",
+        "d8e8", "e2e4", "e7f6", "h2h4", "a7a5", "c1g5", "a5a4", "a5a4"};
 
     //defense to check
     //vector<string> moves = {"e2e4", ":g8", "d7d5", "f1b5", "b8d7"};
 
     //castling
-    vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", ":e1", "e1g1", "e8c8", "q"};
+    //vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", ":e1", "e1g1", "e8c8", "q"};
 
     for(int i=0;i<moves.size();++i){
     //while(true){
@@ -699,8 +707,6 @@ int main(){
         cout << "white Size: " << whitePieces.size() << endl;
         cout << "black Size: " << blackPieces.size() << endl;
     }
-    output.close();
-    deletePieces(whitePieces);
-    deletePieces(blackPieces);
+    exitProgram();
     return 0;
 }
