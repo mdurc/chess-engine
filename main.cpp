@@ -87,7 +87,7 @@ public:
             if(square && square->m_color!=m_color){
                 m_attackedSquares.push_back(Loc(newRow, m_pos.col + 1));
             }
-            square = m_pos.col-1<8?BOARD[newRow][m_pos.col-1]:nullptr;
+            square = m_pos.col-1>=0?BOARD[newRow][m_pos.col-1]:nullptr;
             if(square && square->m_color!=m_color){
                 m_attackedSquares.push_back(Loc(newRow, m_pos.col - 1));
             }
