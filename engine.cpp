@@ -89,9 +89,9 @@ int evaluateBoard(vector<vector<Piece*>>& board, list<Piece*>& whitePieces, list
 
     // checks and checkmate
     if(isInCheck(color, board, whitePieces, blackPieces)){
-        score -= noMoves?100000 :50;
+        score -= noMoves?100000 :25;
     }else if(isInCheck(!color, board, whitePieces, blackPieces)){
-        score += noMoves?100000 :50;
+        score += noMoves?100000 :25;
     }
 
     for(int rank=0;rank<8;++rank){

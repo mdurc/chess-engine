@@ -657,15 +657,15 @@ int main(){
     printBoard(BOARD);
 
     // checkmate
-    vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
-        "e6d7", "a7a5", "e8e7", "d7c8q", "g8f6","d1e2", "f6e4", "d2d3", "e4c5",
-        "d8e8", "e2e4", "e7f6", "h2h4", "a7a5", "c1g5", "a5a4", "a5a4"};
+    //vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
+    //    "e6d7", "a7a5", "e8e7", "d7c8q", "g8f6","d1e2", "f6e4", "d2d3", "e4c5",
+    //    "d8e8", "e2e4", "e7f6", "h2h4", "a7a5", "c1g5", "a5a4", "a5a4"};
 
     //defense to check
     //vector<string> moves = {"e2e4", ":g8", "d7d5", "f1b5", "b8d7"};
 
     //castling
-    //vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", ":e1", "e1g1", "e8c8", "q"};
+    //vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", "e1g1", "e8c8"};
 
     //for(int i=0;i<moves.size();++i){
     while(true){
@@ -683,7 +683,7 @@ int main(){
         //move = moves[i];
         if(!turn){
             // AI is black
-            int depth = 3;
+            int depth = 2;
             int alpha = numeric_limits<int>::min();
             int beta = numeric_limits<int>::max();
             int eval = minimax(depth, alpha, beta, true, turn, BOARD, whitePieces, blackPieces, chosenMove);
@@ -719,7 +719,7 @@ int main(){
             readMoves(move.substr(0,2), BOARD);
         }
         printBoard(BOARD);
-        usleep(1000000/4);
+        usleep(10000);
 
         cout << "white Size: " << whitePieces.size() << endl;
         cout << "black Size: " << blackPieces.size() << endl;
