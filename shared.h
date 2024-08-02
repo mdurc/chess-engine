@@ -34,7 +34,7 @@ public:
 };
 
 
-void findValidMoves(bool color, bool inCheck, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces);
+void findValidMoves(bool color, int inCheck, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces);
 void updateAllPieces(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces, Piece* exceptThis=nullptr);
 void printBoard(vector<vector<Piece*>>& b);
 void readMoves(const string& move, vector<vector<Piece*>>& BOARD);

@@ -1,39 +1,12 @@
 #include <bits/stdc++.h>
+#include <unistd.h>
+#include "shared.h"
 using namespace std;
-
-struct Loc{
-    Loc(int r, int c): row(r), col(c){}
-    int row, col;
-};
-
-
-
-// for simplicities sake, we are including Pawns as Pieces
-class Piece {
-public:
-    virtual ~Piece() = default;
-
-    bool m_color; // color 0 is black, 1 is white
-    string m_piece;
-    list<Loc> m_attackedSquares;
-    list<Loc> m_nonAttackMoves; // for pawns and kings only
-    Loc m_pos{0,0};
-    bool m_hasMoved = false;
-
-    friend ostream& operator<<(ostream& os, const Piece& p){ os << p.m_piece; return os; }
-    virtual bool validMove(const Loc& p);
-
-    // for updating attacked squares
-    virtual void updateMovement() = 0;
-    virtual Piece* clone() const = 0;
-};
 
 
 // GLOBAL
-vector<vector<Piece*>> BOARD(8, vector<Piece*>(8, nullptr));
-list<Piece*> blackPieces, whitePieces;
 int moveNumber = 1;
-ofstream output("history.txt");
+ofstream historyOutput("history.txt");
 
 // <turn #, <Location of piece that can enPassant, the square it attacks>>
 list<pair<int, pair<Loc,Loc>>> enPassants;
@@ -47,8 +20,8 @@ void deletePieces(list<Piece*>& pieces){
     }
 }
 
-void exitProgram(){
-    output.close();
+void exitProgram(list<Piece*>& whitePieces, list<Piece*>& blackPieces){
+    historyOutput.close();
     deletePieces(whitePieces);
     deletePieces(blackPieces);
     exit(1);
@@ -56,7 +29,7 @@ void exitProgram(){
 
 class SlidingPiece : public Piece {
 protected:
-    void addMovesInDirection(int rowDelta, int colDelta) {
+    void addMovesInDirection(vector<vector<Piece*>>& BOARD, int rowDelta, int colDelta) {
         int newRow = m_pos.row;
         int newCol = m_pos.col;
 
@@ -87,10 +60,12 @@ public:
         m_color = c;
         m_piece = (c? "♙" : "♟");
         m_pos = start;
+        m_value = 100;
+        type = PAWN;
     }
 
 
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         int direction = (m_color?-1:1); // 1 for white, -1 for black
         int newRow = m_pos.row + direction;
 
@@ -125,6 +100,7 @@ public:
             }
         }
     }
+    // TODO: REMOVE ALL CLONE FUNCTIONS
     Piece* clone() const {
         return new Pawn(*this);
     }
@@ -138,13 +114,15 @@ public:
         m_color = c;
         m_piece = (c? "♖" : "♜");
         m_pos = start;
+        m_value = 500;
+        type = ROOK;
     }
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         m_attackedSquares.clear();
-        addMovesInDirection(1, 0);  // Up
-        addMovesInDirection(-1, 0); // Down
-        addMovesInDirection(0, 1);  // Right
-        addMovesInDirection(0, -1); // Left
+        addMovesInDirection(BOARD, 1, 0);  // Up
+        addMovesInDirection(BOARD, -1, 0); // Down
+        addMovesInDirection(BOARD, 0, 1);  // Right
+        addMovesInDirection(BOARD, 0, -1); // Left
     }
     Piece* clone() const {
         return new Rook(*this);
@@ -157,8 +135,10 @@ public:
         m_color = c;
         m_piece = (c? "♘" : "♞");
         m_pos = start;
+        m_value = 320;
+        type = KNIGHT;
     }
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         m_attackedSquares.clear();
         int row = m_pos.row;
         int col = m_pos.col;
@@ -170,7 +150,7 @@ public:
             int newRow = row + rowChange[i];
             int newCol = col + colChange[i];
             if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                if(!BOARD[newRow][newCol] || BOARD[newRow][newCol]->m_color!=m_color){
+                if(BOARD[newRow][newCol]==nullptr || BOARD[newRow][newCol]->m_color!=m_color){
                     m_attackedSquares.push_back(Loc(newRow, newCol));
                 }
             }
@@ -187,13 +167,15 @@ public:
         m_color = c;
         m_piece = (c? "♗" : "♝");
         m_pos = start;
+        m_value = 320;
+        type = BISHOP;
     }
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         m_attackedSquares.clear();
-        addMovesInDirection(1, 1);   // Diagonal up-right
-        addMovesInDirection(1, -1);  // Diagonal up-left
-        addMovesInDirection(-1, 1);  // Diagonal down-right
-        addMovesInDirection(-1, -1); // Diagonal down-left
+        addMovesInDirection(BOARD,1, 1);   // Diagonal up-right
+        addMovesInDirection(BOARD,1, -1);  // Diagonal up-left
+        addMovesInDirection(BOARD,-1, 1);  // Diagonal down-right
+        addMovesInDirection(BOARD,-1, -1); // Diagonal down-left
     }
     Piece* clone() const {
         return new Bishop(*this);
@@ -206,25 +188,26 @@ public:
         m_color = c;
         m_piece = (c? "♕" : "♛");
         m_pos = start;
+        m_value = 900;
+        type = QUEEN;
     }
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         m_attackedSquares.clear();
         // bishop + rook movement
-        addMovesInDirection(1, 1);   // Diagonal up-right
-        addMovesInDirection(1, -1);  // Diagonal up-left
-        addMovesInDirection(-1, 1);  // Diagonal down-right
-        addMovesInDirection(-1, -1); // Diagonal down-left
-        addMovesInDirection(1, 0);  // Up
-        addMovesInDirection(-1, 0); // Down
-        addMovesInDirection(0, 1);  // Right
-        addMovesInDirection(0, -1); // Left
+        addMovesInDirection(BOARD, 1, 1);   // Diagonal up-right
+        addMovesInDirection(BOARD, 1, -1);  // Diagonal up-left
+        addMovesInDirection(BOARD, -1, 1);  // Diagonal down-right
+        addMovesInDirection(BOARD, -1, -1); // Diagonal down-left
+        addMovesInDirection(BOARD, 1, 0);  // Up
+        addMovesInDirection(BOARD, -1, 0); // Down
+        addMovesInDirection(BOARD, 0, 1);  // Right
+        addMovesInDirection(BOARD, 0, -1); // Left
     }
     Piece* clone() const {
         return new Queen(*this);
     }
 };
 
-bool isSquareAttacked(Loc x, bool c);
 
 class King : public Piece {
 public:
@@ -232,10 +215,12 @@ public:
         m_color = c;
         m_piece = (c? "♔" : "♚");
         m_pos = start;
+        m_value = 20000;
+        type = KING;
     }
-    bool canCastle(int rookCol, int kingCol1, int kingCol2) {
-        Rook* isRook = dynamic_cast<Rook*>(BOARD[m_pos.row][rookCol]);
-        if (isRook && !isRook->m_hasMoved) {
+    bool canCastle(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces, int rookCol, int kingCol1, int kingCol2) {
+        Piece* isRook = BOARD[m_pos.row][rookCol];
+        if (isRook && isRook->type==ROOK && !isRook->m_hasMoved) {
             // check if all squares between King and Rook are empty
             int lim = max(rookCol, m_pos.col);
             for (int col = min(rookCol, m_pos.col) + 1; col < lim; ++col) {
@@ -245,7 +230,7 @@ public:
             }
             // check if King would pass through or end up in check
             for (int col : {m_pos.col, kingCol1, kingCol2}) {
-                if (isSquareAttacked(Loc(m_pos.row, col), !m_color)) {
+                if (isSquareAttacked(Loc(m_pos.row, col), !m_color, whitePieces, blackPieces)) {
                     return false;
                 }
             }
@@ -254,7 +239,7 @@ public:
         return false;
     };
 
-    void updateMovement(){
+    void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
         m_attackedSquares.clear();
         int directions[8][2] = {
             {1, 0}, {-1, 0}, {0, 1}, {0, -1},
@@ -275,14 +260,13 @@ public:
         m_nonAttackMoves.clear();
         // CASTLING
         if (!m_hasMoved) {
-            // make sure that all squares between rook and 
             // Kingside castling (short castling)
-            if (canCastle(7, m_pos.col + 1, m_pos.col + 2)) {
+            if (canCastle(BOARD, whitePieces, blackPieces, 7, m_pos.col + 1, m_pos.col + 2)) {
                 m_nonAttackMoves.push_back(Loc(m_pos.row, m_pos.col + 2));
             }
 
             // Queenside castling (long castling)
-            if (canCastle(0, m_pos.col - 1, m_pos.col - 2)) {
+            if (canCastle(BOARD, whitePieces, blackPieces, 0, m_pos.col - 1, m_pos.col - 2)) {
                 m_nonAttackMoves.push_back(Loc(m_pos.row, m_pos.col - 2));
             }
         }
@@ -292,18 +276,18 @@ public:
     }
 };
 
-void updateAllPieces(Piece* exceptThis = nullptr){
+void updateAllPieces(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces, Piece* exceptThis){
     for(Piece*& p: blackPieces){
         if(exceptThis == p){ continue; }
-        p->updateMovement();
+        p->updateMovement(BOARD, whitePieces, blackPieces);
     }
     for(Piece*& p: whitePieces){
         if(exceptThis == p){ continue; }
-        p->updateMovement();
+        p->updateMovement(BOARD, whitePieces, blackPieces);
     }
 }
 
-void setupBoard(){
+void setupBoard(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
     // black pieces
     BOARD[0][0] = new Rook(0, Loc(0, 0)); BOARD[0][7] = new Rook(0, Loc(0,7));
     BOARD[0][1] = new Knight(0, Loc(0, 1)); BOARD[0][6] = new Knight(0, Loc(0, 6));
@@ -331,13 +315,13 @@ void setupBoard(){
     }
 }
 
-void printBoard(){
+void printBoard(vector<vector<Piece*>>& b){
     for(int i=0;i<8;++i){
         cout << "   +---+---+---+---+---+---+---+---+" << endl;
         for(int j=0;j<8;++j){
             if(j==0) cout << ' ' << 8-i << ' ';
-            if(BOARD[i][j]){
-                cout << "| " << *(BOARD[i][j]) << ' ';
+            if(b[i][j]){
+                cout << "| " << *(b[i][j]) << ' ';
             }else{
                 cout << "|   ";
             }
@@ -349,7 +333,7 @@ void printBoard(){
 }
 
 
-bool isSquareAttacked(Loc pos, bool color){
+bool isSquareAttacked(Loc pos, bool color, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
     list<Piece*>& ps = color ? whitePieces : blackPieces;
     for (Piece*& piece : ps) {
         for (const Loc& attacked : piece->m_attackedSquares) {
@@ -361,21 +345,22 @@ bool isSquareAttacked(Loc pos, bool color){
     return false;
 }
 
-bool isInCheck(bool color) {
-    Loc kingPos(-1,-1);
+bool isInCheck(bool color, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces) {
+    Loc kingPos;
     for (vector<Piece*>& row : BOARD) {
         for (Piece*& piece : row) {
-            if (piece && dynamic_cast<King*>(piece) && piece->m_color == color) {
+            if (piece && piece->type==KING && piece->m_color == color) {
                 kingPos = piece->m_pos;
                 break;
             }
         }
     }
     // are any opponents attacking the king
-    return isSquareAttacked(kingPos,!color);
+    return isSquareAttacked(kingPos,!color, whitePieces, blackPieces);
 }
 
-void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, bool& foundMove){
+void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, bool& foundMove,
+        vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
     list<Piece*>& os = !color? whitePieces : blackPieces;
     list<Loc> validMovesForPiece, tempAttacks;
 
@@ -383,6 +368,7 @@ void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, 
     for(;i!=moves.end();++i){ 
 
         Piece* tempPiece = BOARD[i->row][i->col];
+        if(tempPiece){ assert(tempPiece->m_color != color); }
 
         // pretend to capture piece
         list<Piece*>::iterator opponent = find(os.begin(),os.end(), BOARD[i->row][i->col]);
@@ -392,33 +378,30 @@ void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, 
         }
 
         // pretend to move piece
+        BOARD[i->row][i->col] = BOARD[tempLoc.row][tempLoc.col];
         BOARD[tempLoc.row][tempLoc.col] = nullptr;
-        p->m_pos = *i;
-        BOARD[i->row][i->col] = p;
+        BOARD[i->row][i->col]->m_pos = *i;
+
 
         // Make sure that moving your piece didn't lead to a discovery on your king
         // Update all of the ops
-        for(Piece*& ops: os){ ops->updateMovement(); }
+        for(Piece*& ops: os){ ops->updateMovement(BOARD, whitePieces, blackPieces); }
 
-        if(!isInCheck(color)){
+        if(!isInCheck(color, BOARD, whitePieces, blackPieces)){
             validMovesForPiece.push_back(*i);
             //cout << "Valid move: " << tempLoc.row << ","<<tempLoc.col << " to " << i->row << ","<<i->col << endl;
             foundMove = true;
         }
 
-        BOARD[tempLoc.row][tempLoc.col] = p;
+        BOARD[tempLoc.row][tempLoc.col] = BOARD[i->row][i->col];
         BOARD[tempLoc.row][tempLoc.col]->m_pos = tempLoc;
         BOARD[i->row][i->col] = tempPiece;
-        if(tempPiece){
-            os.push_back(BOARD[i->row][i->col]);
-        }
+        if(tempPiece){ os.push_back(BOARD[i->row][i->col]); }
     }
     moves = validMovesForPiece;
 }
 
-void findValidMoves(bool color, bool inCheck){
-    // update them, then sort them after
-    //updateAllPieces();
+void findValidMoves(bool color, int inCheck, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
 
     //check every move that the color in check can make.
     //Re-test if they are still in check.
@@ -428,24 +411,25 @@ void findValidMoves(bool color, bool inCheck){
     list<Piece*>& ps = color? whitePieces : blackPieces;
     for(Piece*& p:ps){
         Loc tempLoc = p->m_pos;
-        simulateMoves(p, p->m_attackedSquares, color, tempLoc, foundMove);
-        simulateMoves(p, p->m_nonAttackMoves, color, tempLoc, foundMove);
+        simulateMoves(p, p->m_attackedSquares, color, tempLoc, foundMove, BOARD, whitePieces, blackPieces);
+        simulateMoves(p, p->m_nonAttackMoves, color, tempLoc, foundMove, BOARD, whitePieces, blackPieces);
         p->m_pos = tempLoc;
     }
 
-    if(inCheck && !foundMove){
+    if(inCheck==1 && !foundMove){
         cout << "CHECKMATE " << (color?"BLACK":"WHITE") << " WINS!" << endl;
-        exitProgram();
-    }else if(!inCheck && !foundMove){
+        exitProgram(whitePieces, blackPieces);
+    }else if(inCheck==0 && !foundMove){
         cout << "STALEMATE " << endl;
-        exitProgram();
+        printBoard(BOARD);
+        exitProgram(whitePieces, blackPieces);
     }
 }
 
 
 
 
-void handlePromotion(Piece*& p, char type, bool color){
+void handlePromotion(Piece*& p, char type, bool color, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
 
     list<Piece*>& ps = color? whitePieces: blackPieces;
     list<Piece*>::iterator i = find(ps.begin(), ps.end(), p);
@@ -474,7 +458,7 @@ void handlePromotion(Piece*& p, char type, bool color){
     ps.push_back(p);
 }
 
-void capturePiece(Piece*& op){
+void capturePiece(Piece*& op, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
     if(!op) return;
     list<Piece*>& ps = op->m_color ? whitePieces: blackPieces;
     list<Piece*>::iterator i = find(ps.begin(), ps.end(), op);
@@ -486,21 +470,25 @@ void capturePiece(Piece*& op){
     op = nullptr;
 }
 
-// takes moves like: e2e4, e7e5. Promotion: e7e8q
-bool movePiece(string& move, bool turn){
-    if(move.size() < 4){ cout << "Error on Notation" << endl; return false; }
-    //parse
-    int r1,r2,c1,c2;
-    r1 = 8-(move[1]-'0'); c1 = move[0]-'a';
-    r2 = 8-(move[3]-'0'); c2 = move[2]-'a';
+pair<Loc,Loc> parseInput(string& move){
+    if(move.size() < 4){
+        cout << "Error on Notation" << endl;
+        return {Loc(),Loc()};
+    }
+    return {Loc(8-(move[1]-'0'),move[0]-'a'), Loc(8-(move[3]-'0'),move[2]-'a')};
+}
 
+// takes moves like: e2e4, e7e5. Promotion: e7e8q
+bool movePiece(pair<Loc,Loc>& move, bool turn, char promotion, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
+    int r1=move.first.row; int c1=move.first.col;
+    int r2=move.second.row; int c2=move.second.col;
     Piece* p = BOARD[r1][c1];
     if(p){
         if(p->m_color != turn){
             cout << "Wrong turn" << endl;
             return false;
         }
-        if(!p->validMove(Loc(r2,c2))){
+        if(!p->validMove(move.second, BOARD, whitePieces, blackPieces)){
             cout << "Invalid move" << endl;
             return false;
         }
@@ -509,17 +497,14 @@ bool movePiece(string& move, bool turn){
         p->m_hasMoved = true;
 
         // check for promotion
-        Pawn* isPawn = dynamic_cast<Pawn*>(p);
-        if(isPawn && (r2==7 || r2==0)){
-            if(move.size()!=5){
-                cout << "Promotion types: q, b, n, r\nEx. e7e8q" << endl;
-            }
-            handlePromotion(p, move.back(), p->m_color);
+        if(p->type==PAWN && (r2==7 || r2==0)){
+            cout << "Promotion types: q, b, n, r\nEx. e7e8q" << endl;
+            handlePromotion(p, promotion, p->m_color, whitePieces, blackPieces);
         }
 
         if(BOARD[r2][c2]){
             // will not trigger in this location if this was an en passant capture
-            capturePiece(BOARD[r2][c2]);
+            capturePiece(BOARD[r2][c2], whitePieces, blackPieces);
         }
 
         BOARD[r2][c2] = p;
@@ -530,17 +515,17 @@ bool movePiece(string& move, bool turn){
 }
 
 
-bool Piece::validMove(const Loc& p){
-    King* isKing = dynamic_cast<King*>(this);
-    if(isKing){
-        list<Loc>::iterator itr = isKing->m_nonAttackMoves.begin();
-        for(;itr!=isKing->m_nonAttackMoves.end();++itr){
+bool Piece::validMove(const Loc& p, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces){
+    if(type==KING){
+        list<Loc>::iterator itr = m_nonAttackMoves.begin();
+        for(;itr!=m_nonAttackMoves.end();++itr){
             if (itr->row==p.row && itr->col==p.col){
                 // move the rook
                 int side = (p.col-m_pos.col>0)?7:0;
                 int newCol = (side==7)?5:3;
-                Rook* isRook = dynamic_cast<Rook*>(BOARD[m_pos.row][side]);
-                assert(isRook);
+
+                Piece* isRook = BOARD[m_pos.row][side];
+                assert(isRook->type==ROOK);
                 isRook->m_pos.col = newCol;
                 isRook->m_hasMoved = true;
                 BOARD[m_pos.row][newCol] = isRook;
@@ -552,13 +537,12 @@ bool Piece::validMove(const Loc& p){
 
 
     // check forward movement of the pawn
-    Pawn* isPawn = dynamic_cast<Pawn*>(this);
-    if(isPawn){
+    if(type==PAWN){
         int direction = (m_color?-1:1); // 1 for white, -1 for black
 
         // PAWN FORWARD MOVEMNET
-        list<Loc>::iterator itr = isPawn->m_nonAttackMoves.begin();
-        for(;itr!=isPawn->m_nonAttackMoves.end();++itr){
+        list<Loc>::iterator itr = m_nonAttackMoves.begin();
+        for(;itr!=m_nonAttackMoves.end();++itr){
             if (itr->row==p.row && itr->col==p.col){
                 if(abs(itr->row-m_pos.row) != 2){ return true; }
 
@@ -591,7 +575,7 @@ bool Piece::validMove(const Loc& p){
                 p.row == i->second.second.row && p.col == i->second.second.col){
                 i = enPassants.erase(i);
 
-                capturePiece(BOARD[p.row-direction][p.col]);
+                capturePiece(BOARD[p.row-direction][p.col], whitePieces, blackPieces);
                 return true;
             }
         }
@@ -616,12 +600,13 @@ void clearPassants(){
     }
 }
 
-void readMoves(const string& move) {
+void readMoves(const string& move, vector<vector<Piece*>>& BOARD) {
     int r1 = 8 - (move[1] - '0'); // Convert move row to board index (8-1 to 8-8)
     int c1 = move[0] - 'a';       // Convert move column to board index (0 for 'a', 1 for 'b', etc.)
 
     Piece* p = BOARD[r1][c1];
     if (p) {
+        cout << "PIECE: " << *p << endl;
         cout << "Piece at " << move << " can attack the following squares:" << endl;
         for (const Loc& loc : p->m_attackedSquares) {
             // Convert board indices to chess notation
@@ -637,8 +622,7 @@ void readMoves(const string& move) {
             cout << "  " << col << row << endl;
         }
 
-        Pawn* isPawn = dynamic_cast<Pawn*>(p);
-        if(isPawn){
+        if(p->type==PAWN){
 
             cout << "Pawn at " << move << " can capture En Passant to the following squares:" << endl;
             for (const auto& enPassant : enPassants) {
@@ -656,14 +640,21 @@ void readMoves(const string& move) {
 }
 
 
+
 int main(){
+    vector<vector<Piece*>> BOARD(8, vector<Piece*>(8, nullptr));
+    list<Piece*> blackPieces, whitePieces;
+
+    // for engine:
+    setupEvals();
+
     // start with white
     bool turn = 1;
 
-    output << '{';
+    historyOutput << '{';
 
-    setupBoard();
-    printBoard();
+    setupBoard(BOARD, whitePieces, blackPieces);
+    printBoard(BOARD);
 
     // checkmate
     vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
@@ -676,37 +667,63 @@ int main(){
     //castling
     //vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", ":e1", "e1g1", "e8c8", "q"};
 
-    for(int i=0;i<moves.size();++i){
-    //while(true){
-        updateAllPieces();
-        if(isInCheck(turn)){
+    //for(int i=0;i<moves.size();++i){
+    while(true){
+        updateAllPieces(BOARD, whitePieces, blackPieces);
+        if(isInCheck(turn, BOARD, whitePieces, blackPieces)){
             cout << "CHECK" << endl;
-            findValidMoves(turn,1);
+            findValidMoves(turn,1, BOARD, whitePieces, blackPieces);
         }else{
-            findValidMoves(turn,0);
+            findValidMoves(turn,0, BOARD, whitePieces, blackPieces);
         }
+
+        pair<Loc,Loc> chosenMove;
         string move;
         cout << '\n' << (turn?"White":"Black") << " Move #" << moveNumber << ": ";
-        move = moves[i];
-        //cin >> move;
-        output << '"' << move << "\", ";
-        cout << endl;
-        if(move=="q"){ break; }
-        if(move.front()==':'){
-            readMoves(move.substr(1));
-            continue;
+        //move = moves[i];
+        if(!turn){
+            // AI is black
+            int depth = 3;
+            int alpha = numeric_limits<int>::min();
+            int beta = numeric_limits<int>::max();
+            int eval = minimax(depth, alpha, beta, true, turn, BOARD, whitePieces, blackPieces, chosenMove);
+            move = string(1, 'a' + chosenMove.first.col) + to_string(8-chosenMove.first.row) +
+                string(1, 'a' + chosenMove.second.col) + to_string(8-chosenMove.second.row);
+            cout << move << endl;
+            cout << "Minimax eval: " << eval << endl;
+
+            // one last update after searching and editing the board in minimax algorithm
+            updateAllPieces(BOARD,whitePieces,blackPieces);
+            bool inCheck = isInCheck(!turn, BOARD, whitePieces, blackPieces);
+            findValidMoves(turn, inCheck, BOARD, whitePieces, blackPieces);
+        }else{
+            cin >> move;
+            if(move=="q"){ break; }
+            if(move.front()==':'){
+                readMoves(move.substr(1), BOARD);
+                continue;
+            }
+            chosenMove = parseInput(move);
         }
-        else if(movePiece(move, turn)){
+
+        if(chosenMove.first.row == -1){ continue; }
+
+        historyOutput << '"' << move << "\", ";
+        cout << endl;
+        if(movePiece(chosenMove, turn, move.back(), BOARD, whitePieces, blackPieces)){
             ++moveNumber;
             // clear outdated en passants
             clearPassants();
             turn = !turn;
+        }else{
+            readMoves(move.substr(0,2), BOARD);
         }
-        printBoard();
+        printBoard(BOARD);
+        usleep(1000000/4);
 
         cout << "white Size: " << whitePieces.size() << endl;
         cout << "black Size: " << blackPieces.size() << endl;
     }
-    exitProgram();
+    exitProgram(whitePieces, blackPieces);
     return 0;
 }

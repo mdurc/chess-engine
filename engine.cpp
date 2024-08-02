@@ -85,9 +85,6 @@ void setupEvals(){
 
 
 int evaluateBoard(vector<vector<Piece*>>& board, list<Piece*>& whitePieces, list<Piece*>& blackPieces, bool color, bool noMoves) {
-    updateAllPieces(board,whitePieces,blackPieces);
-    findValidMoves(color, 0, board, whitePieces, blackPieces);
-
     int score = 0;
 
     // checks and checkmate
@@ -166,7 +163,7 @@ int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, v
         list<Piece*>& whitePieces, list<Piece*>& blackPieces, pair<Loc, Loc>& bestMove) {
 
     updateAllPieces(board,whitePieces,blackPieces);
-    findValidMoves(color, 0, board, whitePieces, blackPieces);
+    findValidMoves(color, -1, board, whitePieces, blackPieces);
 
     list<pair<Loc,Loc>> moves = color? generateMoves(whitePieces): generateMoves(blackPieces);
     if (moves.empty()) { return evaluateBoard(board, whitePieces, blackPieces, maximizingPlayer?color:!color, 1); }
