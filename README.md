@@ -9,4 +9,5 @@ The code is messy although I didn't want to focus on writing it perfectly and cl
 
 If you would like to compile and play against the engine: `g++ main.cpp engine.cpp && ./a.out`
 - Note that you defaultly play as white, but it is possible to change with a minor edit.
+- Enter moves as coordinate changes: e2e4, e4e5, etc.
 <img width="313" alt="chessboard" src="https://github.com/user-attachments/assets/1276097a-294d-4b2e-b1fa-a4fd26ee5e09">
