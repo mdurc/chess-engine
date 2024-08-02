@@ -647,7 +647,7 @@ int main(){
         string move;
         cout << '\n' << (turn?"White":"Black") << " Move #" << moveNumber << ": ";
         if(!turn){
-            // AI is black
+            // AI is black (change to if(turn) to play as black)
             int depth = 2;
             int alpha = numeric_limits<int>::min();
             int beta = numeric_limits<int>::max();

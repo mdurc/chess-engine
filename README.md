@@ -5,3 +5,6 @@ Coded a chess engine with minimax alpha beta pruning. First time trying this typ
 - The primary flaw that exists currently is that the bot will infinitely repeat moves
 
 The code is messy although I didn't want to focus on writing it perfectly and cleanly as this is my first time and I just wanted an introduction into the space.
+
+If you would like to compile and play against the engine: `g++ main.cpp engine.cpp && ./a.out`
+- Note that you defaultly play as white, but it is possible to change with a minor edit.
