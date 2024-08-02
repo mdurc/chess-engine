@@ -30,7 +30,6 @@ public:
 
     // for updating attacked squares
     virtual void updateMovement(vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces) = 0;
-    virtual Piece* clone() const = 0;
 };
 
 

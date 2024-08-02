@@ -13,7 +13,7 @@ list<pair<int, pair<Loc,Loc>>> enPassants;
 
 
 void deletePieces(list<Piece*>& pieces){
-    cout << "Size: " << pieces.size() << endl;
+    cout << "Deleting " << pieces.size() << " Pieces" << endl;
     for(Piece*& p: pieces){
         delete p;
         p = nullptr;
@@ -100,10 +100,6 @@ public:
             }
         }
     }
-    // TODO: REMOVE ALL CLONE FUNCTIONS
-    Piece* clone() const {
-        return new Pawn(*this);
-    }
 };
 
 
@@ -123,9 +119,6 @@ public:
         addMovesInDirection(BOARD, -1, 0); // Down
         addMovesInDirection(BOARD, 0, 1);  // Right
         addMovesInDirection(BOARD, 0, -1); // Left
-    }
-    Piece* clone() const {
-        return new Rook(*this);
     }
 };
 
@@ -156,9 +149,6 @@ public:
             }
         }
     }
-    Piece* clone() const {
-        return new Knight(*this);
-    }
 };
 
 class Bishop : public SlidingPiece {
@@ -176,9 +166,6 @@ public:
         addMovesInDirection(BOARD,1, -1);  // Diagonal up-left
         addMovesInDirection(BOARD,-1, 1);  // Diagonal down-right
         addMovesInDirection(BOARD,-1, -1); // Diagonal down-left
-    }
-    Piece* clone() const {
-        return new Bishop(*this);
     }
 };
 
@@ -202,9 +189,6 @@ public:
         addMovesInDirection(BOARD, -1, 0); // Down
         addMovesInDirection(BOARD, 0, 1);  // Right
         addMovesInDirection(BOARD, 0, -1); // Left
-    }
-    Piece* clone() const {
-        return new Queen(*this);
     }
 };
 
@@ -270,9 +254,6 @@ public:
                 m_nonAttackMoves.push_back(Loc(m_pos.row, m_pos.col - 2));
             }
         }
-    }
-    Piece* clone() const {
-        return new King(*this);
     }
 };
 
@@ -373,7 +354,6 @@ void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, 
         // pretend to capture piece
         list<Piece*>::iterator opponent = find(os.begin(),os.end(), BOARD[i->row][i->col]);
         if(opponent!=os.end()){
-            //cout << "Pretend Capture" << endl;
             opponent = os.erase(opponent);
         }
 
@@ -389,7 +369,6 @@ void simulateMoves(Piece*& p, list<Loc>& moves, bool color, const Loc& tempLoc, 
 
         if(!isInCheck(color, BOARD, whitePieces, blackPieces)){
             validMovesForPiece.push_back(*i);
-            //cout << "Valid move: " << tempLoc.row << ","<<tempLoc.col << " to " << i->row << ","<<i->col << endl;
             foundMove = true;
         }
 
@@ -463,7 +442,6 @@ void capturePiece(Piece*& op, list<Piece*>& whitePieces, list<Piece*>& blackPiec
     list<Piece*>& ps = op->m_color ? whitePieces: blackPieces;
     list<Piece*>::iterator i = find(ps.begin(), ps.end(), op);
     if(i!=ps.end()){
-        //cout << "Successfully removed from the " << (op->m_color?"white":"black") << " pieces list" << endl;
         i = ps.erase(i);
     }
     delete op;
@@ -550,18 +528,18 @@ bool Piece::validMove(const Loc& p, vector<vector<Piece*>>& BOARD, list<Piece*>&
                 Pawn* opPawn = p.col+1<8?dynamic_cast<Pawn*>(BOARD[p.row][p.col+1]):nullptr;
                 if(opPawn && opPawn->m_color!=m_color){
                     enPassants.push_back({moveNumber,{opPawn->m_pos,Loc(p.row-direction,p.col)}});
-                    cout << "En Passant: Move " << moveNumber 
-                        << " - Opponent pawn at (" << opPawn->m_pos.row << ", " << opPawn->m_pos.col 
-                        << ") can be captured en passant to (" << p.row-direction << ", " << p.col << ")" 
-                        << endl;
+                    //cout << "En Passant: Move " << moveNumber 
+                    //    << " - Opponent pawn at (" << opPawn->m_pos.row << ", " << opPawn->m_pos.col 
+                    //    << ") can be captured en passant to (" << p.row-direction << ", " << p.col << ")" 
+                    //    << endl;
                 }
                 opPawn = p.col-1>=0?dynamic_cast<Pawn*>(BOARD[p.row][p.col-1]):nullptr;
                 if(opPawn && opPawn->m_color!=m_color){
                     enPassants.push_back({moveNumber,{opPawn->m_pos,Loc(p.row-direction,p.col)}});
-                    cout << "En Passant: Move " << moveNumber 
-                        << " - Opponent pawn at (" << opPawn->m_pos.row << ", " << opPawn->m_pos.col 
-                        << ") can be captured en passant to (" << p.row-direction << ", " << p.col << ")" 
-                        << endl;
+                    //cout << "En Passant: Move " << moveNumber 
+                    //    << " - Opponent pawn at (" << opPawn->m_pos.row << ", " << opPawn->m_pos.col 
+                    //    << ") can be captured en passant to (" << p.row-direction << ", " << p.col << ")" 
+                    //    << endl;
                 }
                 return true;
             }
@@ -656,18 +634,6 @@ int main(){
     setupBoard(BOARD, whitePieces, blackPieces);
     printBoard(BOARD);
 
-    // checkmate
-    //vector<string> moves = {"e2e4", "d7d5", "e4d5", "e7e5", "d5e6", "b8d7",
-    //    "e6d7", "a7a5", "e8e7", "d7c8q", "g8f6","d1e2", "f6e4", "d2d3", "e4c5",
-    //    "d8e8", "e2e4", "e7f6", "h2h4", "a7a5", "c1g5", "a5a4", "a5a4"};
-
-    //defense to check
-    //vector<string> moves = {"e2e4", ":g8", "d7d5", "f1b5", "b8d7"};
-
-    //castling
-    //vector<string> moves{"e2e4", "d7d5", "f1b5", "b8c6", "e4d5", "e7e5", "d5e6", "d8e7", "g1f3", "c8e6", "e1g1", "e8c8"};
-
-    //for(int i=0;i<moves.size();++i){
     while(true){
         updateAllPieces(BOARD, whitePieces, blackPieces);
         if(isInCheck(turn, BOARD, whitePieces, blackPieces)){
@@ -680,7 +646,6 @@ int main(){
         pair<Loc,Loc> chosenMove;
         string move;
         cout << '\n' << (turn?"White":"Black") << " Move #" << moveNumber << ": ";
-        //move = moves[i];
         if(!turn){
             // AI is black
             int depth = 2;
@@ -720,9 +685,6 @@ int main(){
         }
         printBoard(BOARD);
         usleep(10000);
-
-        cout << "white Size: " << whitePieces.size() << endl;
-        cout << "black Size: " << blackPieces.size() << endl;
     }
     exitProgram(whitePieces, blackPieces);
     return 0;
