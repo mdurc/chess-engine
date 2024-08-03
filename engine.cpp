@@ -13,7 +13,7 @@ const vector<int> pawnEvalBlack = {
     5, 5, 10, 25, 25, 10, 5, 5,
     10, 10, 20, 30, 30, 20, 10, 10,
     50, 50, 50, 50, 50, 50, 50, 50,
-    0, 0, 0, 0, 0, 0, 0, 0
+    900, 900, 900, 900, 900, 900, 900, 900
 };
 vector<int> pawnEvalWhite = pawnEvalBlack;
 
@@ -159,8 +159,47 @@ list<pair<Loc,Loc>> generateMoves(list<Piece*>& pieces){
     return moves;
 }
 
+int run_engine(vector<vector<Piece*>>& board, list<Piece*>& whitePieces,
+        list<Piece*>& blackPieces, bool turn, pair<Loc,Loc>& chosenMove, int depth){
+    int maxEval = numeric_limits<int>::min();
+    int alpha = numeric_limits<int>::min();
+    int beta = numeric_limits<int>::max();
+
+    list<pair<Loc,Loc>> moves = turn? generateMoves(whitePieces): generateMoves(blackPieces);
+    list<Piece*>& os = !turn? whitePieces : blackPieces;
+    for (const pair<Loc,Loc>& move : moves) {
+        // apply move
+        Piece* temp = board[move.second.row][move.second.col];
+        list<Piece*>::iterator opponent = find(os.begin(),os.end(), board[move.second.row][move.second.col]);
+        if(opponent!=os.end()){ opponent = os.erase(opponent); }
+        board[move.second.row][move.second.col] = board[move.first.row][move.first.col];
+        board[move.first.row][move.first.col] = nullptr;
+        board[move.second.row][move.second.col]->m_pos = move.second;
+
+        bool moved = board[move.second.row][move.second.col]->m_hasMoved;
+        board[move.second.row][move.second.col]->m_hasMoved = true;
+
+        // maximize the ai
+        int eval = minimax(depth - 1, alpha, beta, false, (turn?0:1), board, whitePieces, blackPieces);
+
+        // undo move
+        board[move.first.row][move.first.col] = board[move.second.row][move.second.col];
+        board[move.first.row][move.first.col]->m_pos = move.first;
+        board[move.first.row][move.first.col]->m_hasMoved = moved;
+        board[move.second.row][move.second.col] = temp;
+        if(temp){ os.push_back(board[move.second.row][move.second.col]); }
+
+        if (eval > maxEval) {
+            maxEval = eval;
+            chosenMove = move;
+        }
+    }
+
+    return maxEval;
+}
+
 int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, vector<vector<Piece*>>& board,
-        list<Piece*>& whitePieces, list<Piece*>& blackPieces, pair<Loc, Loc>& bestMove) {
+        list<Piece*>& whitePieces, list<Piece*>& blackPieces) {
 
     updateAllPieces(board,whitePieces,blackPieces);
     findValidMoves(color, -1, board, whitePieces, blackPieces);
@@ -186,7 +225,7 @@ int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, v
             bool moved = board[move.second.row][move.second.col]->m_hasMoved;
             board[move.second.row][move.second.col]->m_hasMoved = true;
 
-            int eval = minimax(depth - 1, alpha, beta, false, (color?0:1), board, whitePieces, blackPieces, bestMove);
+            int eval = minimax(depth - 1, alpha, beta, false, (color?0:1), board, whitePieces, blackPieces);
 
             // undo move
             board[move.first.row][move.first.col] = board[move.second.row][move.second.col];
@@ -197,7 +236,6 @@ int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, v
 
             if (eval > maxEval) {
                 maxEval = eval;
-                bestMove = move;
             }
             alpha = max(alpha, eval);
             if (beta <= alpha) {
@@ -220,7 +258,7 @@ int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, v
             bool moved = board[move.second.row][move.second.col]->m_hasMoved;
             board[move.second.row][move.second.col]->m_hasMoved = true;
 
-            int eval = minimax(depth - 1, alpha, beta, true, (color?0:1), board, whitePieces, blackPieces, bestMove);
+            int eval = minimax(depth - 1, alpha, beta, true, (color?0:1), board, whitePieces, blackPieces);
 
             // undo move
             board[move.first.row][move.first.col] = board[move.second.row][move.second.col];

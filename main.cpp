@@ -243,7 +243,8 @@ public:
 
         m_nonAttackMoves.clear();
         // CASTLING
-        if (!m_hasMoved) {
+
+        if (!m_hasMoved && !isInCheck(m_color, BOARD, whitePieces, blackPieces)) {
             // Kingside castling (short castling)
             if (canCastle(BOARD, whitePieces, blackPieces, 7, m_pos.col + 1, m_pos.col + 2)) {
                 m_nonAttackMoves.push_back(Loc(m_pos.row, m_pos.col + 2));
@@ -633,6 +634,7 @@ int main(){
 
     setupBoard(BOARD, whitePieces, blackPieces);
     printBoard(BOARD);
+    int count = 0;
 
     while(true){
         updateAllPieces(BOARD, whitePieces, blackPieces);
@@ -646,12 +648,17 @@ int main(){
         pair<Loc,Loc> chosenMove;
         string move;
         cout << '\n' << (turn?"White":"Black") << " Move #" << moveNumber << ": ";
-        if(!turn){
+        char cont;
+        if(1){
+            if(count > 10){
+                count = 0;
+                cin >> cont;
+                if(cont=='q') break;
+            }else{
+                ++count;
+            }
             // AI is black (change to if(turn) to play as black)
-            int depth = 2;
-            int alpha = numeric_limits<int>::min();
-            int beta = numeric_limits<int>::max();
-            int eval = minimax(depth, alpha, beta, true, turn, BOARD, whitePieces, blackPieces, chosenMove);
+            int eval = run_engine(BOARD, whitePieces, blackPieces, turn, chosenMove, 3);
             move = string(1, 'a' + chosenMove.first.col) + to_string(8-chosenMove.first.row) +
                 string(1, 'a' + chosenMove.second.col) + to_string(8-chosenMove.second.row);
             cout << move << endl;

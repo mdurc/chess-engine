@@ -40,7 +40,10 @@ void readMoves(const string& move, vector<vector<Piece*>>& BOARD);
 bool isInCheck(bool color, vector<vector<Piece*>>& BOARD, list<Piece*>& whitePieces, list<Piece*>& blackPieces);
 bool isSquareAttacked(Loc pos, bool color, list<Piece*>& whitePieces, list<Piece*>& blackPieces);
 
+
+
+int run_engine(vector<vector<Piece*>>& board, list<Piece*>& whitePieces, list<Piece*>& blackPieces, bool turn, pair<Loc,Loc>& chosenMove, int depth=2);
 int minimax(int depth, int alpha, int beta, bool maximizingPlayer, bool color, vector<vector<Piece*>>& BOARD,
-        list<Piece*>& whitePieces, list<Piece*>& blackPieces, pair<Loc, Loc>& bestMove);
+        list<Piece*>& whitePieces, list<Piece*>& blackPieces);
 void setupEvals();
 
