@@ -634,7 +634,6 @@ int main(){
 
     setupBoard(BOARD, whitePieces, blackPieces);
     printBoard(BOARD);
-    int count = 0;
 
     while(true){
         updateAllPieces(BOARD, whitePieces, blackPieces);
@@ -648,15 +647,7 @@ int main(){
         pair<Loc,Loc> chosenMove;
         string move;
         cout << '\n' << (turn?"White":"Black") << " Move #" << moveNumber << ": ";
-        char cont;
-        if(1){
-            if(count > 10){
-                count = 0;
-                cin >> cont;
-                if(cont=='q') break;
-            }else{
-                ++count;
-            }
+        if(!turn){
             // AI is black (change to if(turn) to play as black)
             int eval = run_engine(BOARD, whitePieces, blackPieces, turn, chosenMove, 3);
             move = string(1, 'a' + chosenMove.first.col) + to_string(8-chosenMove.first.row) +
